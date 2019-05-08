@@ -1,5 +1,7 @@
 #pragma once
 #include "Vector2.h"
+class AABB;
+
 class Circle
 {
 public:

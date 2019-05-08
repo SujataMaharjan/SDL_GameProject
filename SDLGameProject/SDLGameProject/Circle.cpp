@@ -1,5 +1,5 @@
 #include "Circle.h"
-
+#include "AABB.h"
 
 
 Circle::Circle()
@@ -36,7 +36,7 @@ bool Circle::PointCollision(Vector2 point)
 	distance.y = point.y - m_position.y;
 	float length = distance.Magnitude();
 
-	if (length < m_radius)
+	if (length <= m_radius)
 	{
 		return true;
 	}
@@ -48,5 +48,11 @@ bool Circle::CircleCollision(const Circle & c)
 	Vector2 distance;
 	distance.x = c.GetPosition().x - m_position.x;
 	distance.y = c.GetPosition().y - m_position.y;
+	int length = distance.Magnitude();
+
+	if (length <= (m_radius + c.GetRadius()))
+	{
+		return true;
+	}
 	return false;
 }

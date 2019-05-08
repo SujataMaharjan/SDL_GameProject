@@ -138,6 +138,14 @@ void Game::Update() {
 	anim->Update(deltaTime);
 	m_player->Update(deltaTime);
 
+	//collision check between player and enemy
+	for (auto itr = m_enemies.begin(); itr != m_enemies.end(); ++itr) {
+		if (CollisionCheck(m_player, (*itr)))
+		{
+			delete m_enemies[0];
+		}
+	}
+
 	for (auto itr = m_enemies.begin(); itr != m_enemies.end(); ++itr) {
 		(*itr)->Update(deltaTime);
 	}
@@ -332,6 +340,17 @@ void Game::Quit()
 	{
 		isGameOver = true;
 	}
+}
+
+bool Game::CollisionCheck(Player * p, Enemy * e)
+{
+	if (p->GetCollider() != nullptr)
+	{
+		if (p->GetCollider()->RectangleCollision(*(e->GetCollider()))) {
+			return true
+		}
+	}
+	return false;
 }
 
 // destructor

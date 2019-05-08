@@ -10,6 +10,8 @@ public:
 	Game();
 	static Game* GetInstance();
 
+	//Engine Functions**************
+
 	static void Create();
 	// @brief	creates the renderer 
 	//			Intial allocations of the objects are done here 
@@ -47,6 +49,9 @@ public:
 	//@brief returns if game loop has ended
 	void Quit();
 
+	//Game Functions ******************************
+	bool CollisionCheck(Player* p, Enemy* e);
+
 	~Game();
 
 private:
@@ -70,7 +75,7 @@ private:
 	Player* m_player;
 
 	// creating enemies
-	std::vector<GameObject*> m_enemies;
+	std::vector<Enemy*> m_enemies;
 
 	//create a bounding circle
 	Circle* c;
