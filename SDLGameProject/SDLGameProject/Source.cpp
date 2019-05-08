@@ -3,12 +3,13 @@
 #include "Game.h"
 
 int main(int argc, char** argv) {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	// allocate the object of the game class
-	Game* game = new Game();
+	Game::Create();
 	// runs the game
-	game->Run("Hello SDL", 800, 600, false);
+	Game::GetInstance()->Run("Hello SDL", 800, 600, false);
 	// deallocates the game object
-	delete game;
+	//delete game;
 
 	return 0;
 }

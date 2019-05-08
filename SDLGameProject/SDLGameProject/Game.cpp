@@ -1,6 +1,8 @@
 #include "Game.h"
 #include <iostream>
 
+Game* Game::m_instance = nullptr;
+
 // default constructor
 Game::Game() {
 	// set the SDL window pointer to null
@@ -25,6 +27,21 @@ Game::Game() {
 	}
 }
 
+Game* Game::GetInstance()
+{
+	return m_instance;
+}
+
+void Game::Create()
+{
+	if (m_instance == nullptr)
+	{
+		//create an input
+		m_instance = new Game();
+	}
+
+}
+
 
 bool Game::Start() {
 	// create the renderer for the window created.
@@ -37,27 +54,49 @@ bool Game::Start() {
 		// initialize player texture
 		m_playerTexture = new Texture();
 		// load the texture
-		if (m_playerTexture->LoadPNGFromFile("../assets/old_enemies.png", sdlRenderer)) {
+		if (m_playerTexture->LoadPNGFromFile("../assets/braid_run.png", sdlRenderer)) {
 			std::cout << "Load player texture - success" << std::endl;
 			// initialize player animation
-			anim = new Animation(m_playerTexture, 1, 0.05f);
-			//SDL_Rect firstFrame = { 17, 20, 31 - 17, 31 - 20 };
-			anim->AddFrame(17, 18, 31 - 17, 14);
-			anim->AddFrame(32, 18, 47 - 32, 14);
-			anim->AddFrame(47, 18, 64 - 47, 14);
-			anim->AddFrame(65, 18, 79 - 64, 14);
-			anim->AddFrame(80, 18, 95 - 80, 14);
-			anim->AddFrame(96, 18, 111 - 96, 14);
-
+			anim = new Animation(m_playerTexture, 0.03f);
+			int texWidth = m_playerTexture->GetImageWidth() / 10;
+			int texHeight = m_playerTexture->GetImageHeight() / 3;
+			int totalFrames = 26;
+			int col = 0;
+			int row = 0;
+			while (totalFrames >= 0) {
+				anim->AddFrame(col * texWidth, row * texHeight, 200, 200);
+				++col;
+				if (col >= 10) {
+					col = 0;
+					++row;
+				}
+				--totalFrames;
+			}
 		}
 		else {
 			std::cout << "Load player texture - failed" << std::endl;
 			return false;
 		}
 
+		Texture* playerTexture = new Texture();
+		playerTexture->LoadBMPFromFile("../assets/knight.bmp", sdlRenderer);
+		m_player = new Player(playerTexture, Vector2(100,10));
 		
+		for (int i = 0; i < 5; ++i) {
+			Texture* enemyTexture = new Texture();
+			enemyTexture->LoadPNGFromFile("../assets/fighter02.png", sdlRenderer);
+			Enemy* enemy = new Enemy(enemyTexture, Vector2(i * 10, i * 20));
+			m_enemies.push_back(enemy);
+		}
+
+		//set position and radius of circle
+		c = new Circle(Vector2(200, 200), 30);
+
 		// Get the current clock time
 		lastUpdate = SDL_GetTicks();
+
+		//Create input
+		Input::Create();
 
 		return true;
 	}
@@ -67,7 +106,21 @@ bool Game::Start() {
 
 
 void Game::ProcessInput() {
+	//Update input
+	Input::GetInstance()->UpdateInput();
+
+	//ESC to exit
+	if (Input::GetInstance()->isKeyDown(SDL_SCANCODE_ESCAPE))
+	{
+		Quit();
+	}
+
 	// TODO: Get the user input here
+	m_player->HandleInput();
+
+	for (int i = 0; i < m_enemies.size(); ++i) {
+		m_enemies[i]->HandleInput();
+	}
 }
 
 
@@ -83,8 +136,62 @@ void Game::Update() {
 
 	// TODO: update your stuff here
 	anim->Update(deltaTime);
+	m_player->Update(deltaTime);
+
+	for (auto itr = m_enemies.begin(); itr != m_enemies.end(); ++itr) {
+		(*itr)->Update(deltaTime);
+	}
+
+	//check for circle-point collision
+	//position of the point
+	int x = 0;
+	int y = 0;
+	Input::GetInstance()->GetMousePos(&x, &y);
+	Vector2 distance;
+	if (c->PointCollision(Vector2(x, y))) {
+		SDL_Log("Collided with player");
+		SDL_Log("Point: %i, %i", x, y);
+	}
+
 }
 
+void Game::DrawCircle(SDL_Renderer * renderer, int32_t centreX, int32_t centreY, int32_t radius)
+{
+	const int32_t diameter = (radius * 2);
+
+	int32_t x = (radius - 1);
+	int32_t y = 0;
+	int32_t tx = 1;
+	int32_t ty = 1;
+	int32_t error = (tx - diameter);
+
+	while (x >= y)
+	{
+		//  Each of the following renders an octant of the circle
+		SDL_RenderDrawPoint(renderer, centreX + x, centreY - y);
+		SDL_RenderDrawPoint(renderer, centreX + x, centreY + y);
+		SDL_RenderDrawPoint(renderer, centreX - x, centreY - y);
+		SDL_RenderDrawPoint(renderer, centreX - x, centreY + y);
+		SDL_RenderDrawPoint(renderer, centreX + y, centreY - x);
+		SDL_RenderDrawPoint(renderer, centreX + y, centreY + x);
+		SDL_RenderDrawPoint(renderer, centreX - y, centreY - x);
+		SDL_RenderDrawPoint(renderer, centreX - y, centreY + x);
+
+		if (error <= 0)
+		{
+			++y;
+			error += ty;
+			ty += 2;
+		}
+
+		if (error > 0)
+		{
+			--x;
+			tx += 2;
+			error += (tx - diameter);
+		}
+	}
+}
 
 void Game::Draw() {
 	// set the Draw color to black
@@ -94,7 +201,21 @@ void Game::Draw() {
 
 	// TODO: draw your stuff here
 	// Render the animation on the screen
-	anim->Draw(sdlRenderer, 100, 100);
+	if (anim->GetFrameSize() > 0) {
+		anim->Draw(sdlRenderer, 100, 200);
+	}
+	
+	m_player->Draw(sdlRenderer);
+
+	for (GameObject* e : m_enemies) {
+		e->Draw(sdlRenderer);
+	}
+	SDL_SetRenderDrawColor(sdlRenderer, 255, 0, 0, 255);
+
+	//draw circle
+	DrawCircle(sdlRenderer, c->GetPosition().x, c->GetPosition().y, c->GetRadius());
+
+	SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
 
 	// SDL_Renderer* draws to the hidden target. 
 	// This function will take all of that and draws all of that in the window tied to the renderer
@@ -151,18 +272,66 @@ void Game::Run(char * title, int width, int height, bool fullscreen) {
 
 void Game::ShutDown() {
 	// TODO: deallocate the stuff you created in Start()
+
+	// deallocate animation
+	if (anim != nullptr) {
+		delete anim;
+		anim = nullptr;
+	}
+
+	// deallocate player
+	if (m_player != nullptr) {
+		delete m_player;
+		m_player = nullptr;
+	}
+
+	// deallocate the array of enemies
+	for (auto e : m_enemies) {
+		if (e != nullptr) {
+			delete e;
+			e = nullptr;
+		}
+	}
+
+	//remove input from memory
+	Input::Destroy();
 }
 
 
 void Game::Destroy() {
 	// deallocates the SDL_Window*
-	SDL_DestroyWindow(sdlWindow);
-	sdlWindow = nullptr;
+	if (sdlWindow != nullptr) {
+		// de-allocate the window
+		SDL_DestroyWindow(sdlWindow);
+		// reset the pointer to null
+		sdlWindow = nullptr;
+	}
 	// deallocates the SDL_Renderer*
-	SDL_DestroyRenderer(sdlRenderer);
-	sdlRenderer = nullptr;
+	if (sdlRenderer != nullptr) {
+		// de-allocate the renderer
+		SDL_DestroyRenderer(sdlRenderer);
+		// reset the pointer to null
+		sdlRenderer = nullptr;
+	}
+
 	// shuts down the SDL framework
 	SDL_Quit();
+
+	if (m_instance != nullptr)
+	{
+		//removes instance of input from memory
+		delete m_instance;
+		//set pointer to nullptr
+		m_instance = nullptr;
+	}
+}
+
+void Game::Quit()
+{
+	if (!isGameOver)
+	{
+		isGameOver = true;
+	}
 }
 
 // destructor

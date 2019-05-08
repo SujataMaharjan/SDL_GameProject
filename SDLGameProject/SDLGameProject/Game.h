@@ -1,11 +1,16 @@
 #pragma once
 
 #include "Animation.h"
+#include "Player.h"
+#include "Enemy.h"
+#include "Circle.h"
 
 class Game {
 public:
 	Game();
+	static Game* GetInstance();
 
+	static void Create();
 	// @brief	creates the renderer 
 	//			Intial allocations of the objects are done here 
 	bool Start();
@@ -15,6 +20,9 @@ public:
 
 	// @brief	advances the game simulation, it runs AI, Physics, player movement
 	void Update();
+
+	//draw circle
+	void DrawCircle(SDL_Renderer * renderer, int32_t centreX, int32_t centreY, int32_t radius);
 
 	// @brief	draws the game so the player can see what happened
 	void Draw();
@@ -36,10 +44,14 @@ public:
 	//			shutdown the SDL framework
 	void Destroy();
 
+	//@brief returns if game loop has ended
+	void Quit();
 
 	~Game();
 
 private:
+	//singleton instansiation
+	static Game* m_instance;
 	// the window we will be rendering to
 	SDL_Window* sdlWindow;
 	// 2D rendering context for a window
@@ -53,5 +65,14 @@ private:
 	Texture* m_playerTexture;
 	// Animating the player
 	Animation* anim;
+
+	// creating a player
+	Player* m_player;
+
+	// creating enemies
+	std::vector<GameObject*> m_enemies;
+
+	//create a bounding circle
+	Circle* c;
  };
 
